@@ -1,5 +1,6 @@
 # tradeingbot
-TL:DR a crypto tradeingbot
+TL:DR a crypto tradeingbot with privare wallet and no acces to real funds just training 
+this is under develpment and therefore not finished and filed with bugs
 ## setup
   
 * first you need a node running on your machine
