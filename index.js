@@ -55,7 +55,7 @@ app.post("/api/botupdate", function (req, response) {
   console.log(req.body);
   response.json(req.body);
 
-  wirtebotdata(req.body.indput,req.body.value)
+  wirtebotdata(req.body.indput, req.body.value)
 });
 
 
@@ -95,8 +95,8 @@ function readbotdata(indput) {
   return bot[indput]
 }
 
-function wirtebotdata(indput, value){
- let rawdata = fs.readFileSync('bot.json');
+function wirtebotdata(indput, value) {
+  let rawdata = fs.readFileSync('bot.json');
   let bot = JSON.parse(rawdata);
   var i = 0;
 
@@ -128,7 +128,7 @@ function readwallet(indputcoin) {
   if (indputcoin == null) {
     return rawdata;
   }
-  
+
   return wallet.coin[indputcoin]
 }
 
@@ -155,23 +155,47 @@ function writewallet(valutta, amount) {
 }
 
 
-async function getprice(coin, vscoin){
+async function getprice(coin, vscoin) {
   let data = await CoinGeckoClient.simple.price({
     ids: [coin],
     vs_currencies: [vscoin],
-});
-return data
+  });
+  return data
 };
 
+//date is a string.. api cant take unix
+async function gethistoicalprice(coin, vscoin, date) {
+  let data = await CoinGeckoClient.coins.fetchHistory(coin, {
+    date: date
+  });
 
+  return data.data.market_data.current_price[vscoin];
+};
 
+async function getpricerange(from,to,coin,vscoin){ 
+let data = await CoinGeckoClient.coins.fetchMarketChartRange(coin, {
+  from: from,
+  to: to,
+});
+console.log(data.data.prices);
+return data.data.prices
+}
+
+getpricerange(unixtime(3),unixtime(1),"cardano");
+console.log(Date.now());
+function unixtime(days) {
+  timenow = Date.now();
+  timeback = days * 86400000;
+
+  return timenow - timeback
+}
 
 //amount is the amount of coin you want
 function buy(coin, vscoin, amount) {
 
-  getprice(coin, vscoin).then(function(result){
-  var price = result.data[coin][vscoin];
-  console.log(price);
+  getprice(coin, vscoin).then(function (result) {
+    var price = result.data[coin][vscoin];
+    console.log(price);
     console.log(amount)
 
     var totalprice = price * amount;
@@ -203,19 +227,19 @@ function buy(coin, vscoin, amount) {
 
 function sell(coin, vscoin, amount) {
 
-  getprice(coin, vscoin).then(function(result){
-    var price = result.data[coin][vscoin];
+  getprice(coin, vscoin).then(function (result) {
 
-   
+    var price = result.data[coin][vscoin];
     var readvscoin = readwallet(vscoin);
     var readcoin = readwallet(coin);
 
     console.log(readcoin); console.log(amount);
     if (readcoin >= amount) {
+
       var total = (price * amount) + readvscoin;
+
       writewallet(vscoin, total);
-      var otal = readcoin - amount;
-      writewallet(coin, otal);
+      writewallet(coin, readcoin - amount);
       console.log("sold " + amount + " " + coin + " for " + price * amount + " " + vscoin)
     }
     else {
@@ -224,3 +248,29 @@ function sell(coin, vscoin, amount) {
   });
 }
 
+//idk why getmonth returns a value one lower then the current??
+function SMA(coin, vscoin, start) {
+
+  total = 0;
+  for (i = 0; i < 5; i++) {
+    const d = new Date(unixtime(start - i));
+    date = d.getDate() + "-" + (d.getMonth() + 1) + "-" + d.getFullYear()
+    
+    gethistoicalprice(coin, vscoin, date).then(function (result) {
+      total = total + result
+      
+    })
+  
+  }
+  return total / 5;
+}
+
+
+
+function EMA(coin, days) {
+
+}
+
+function MACDsignal(coin) {
+  return EMA(coin, 12) - EMA(coin, 26)
+}
